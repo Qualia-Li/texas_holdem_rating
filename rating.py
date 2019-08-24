@@ -20,7 +20,7 @@ class Game:
 
 
 def normalize(score):
-    return score/100.0+0.5
+    return score/200.0+0.5
 
 
 def print_top_k_rating(k=0):
