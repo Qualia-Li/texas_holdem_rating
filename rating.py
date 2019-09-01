@@ -1,6 +1,7 @@
 from gilcko2 import Player
 
 all_players = dict()
+all_players_income = dict()
 
 
 class Game:
@@ -8,6 +9,8 @@ class Game:
         for player_name in player_scores.keys():
             if player_name not in all_players:
                 all_players[player_name] = Player()
+                all_players_income[player_name] = 0
+            all_players_income[player_name] += player_scores[player_name]
         players = [all_players[player_name] for player_name in player_scores.keys()]
         player_ratings = [player.rating for player in players]
         player_deviations = [player.rd for player in players]
@@ -29,3 +32,11 @@ def print_top_k_rating(k=0):
         k = len(sorted_players)
     for player in sorted_players[:k]:
         print "%.2f\t%s" % (player[1].rating, player[0])
+
+
+def print_top_k_income(k=0):
+    sorted_players = sorted(all_players_income.items(), key=lambda p: p[1], reverse=True)
+    if k == 0:
+        k = len(sorted_players)
+    for player in sorted_players[:k]:
+        print "%s\t%s" % (player[1], player[0])
