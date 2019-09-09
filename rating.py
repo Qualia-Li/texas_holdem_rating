@@ -15,15 +15,19 @@ class Game:
         player_ratings = [player.rating for player in players]
         player_deviations = [player.rd for player in players]
 
+        max_score = max([score[1] for score in player_scores.items()])
+        min_score = min([score[1] for score in player_scores.items()])
+        max_score = max(max_score, -min_score)
+
         for player_name in player_scores.keys():
             player = all_players[player_name]
-            score = normalize(player_scores[player_name])
+            score = normalize(player_scores[player_name], max_score)
             score_list = [score] * len(players)
             player.update_player(player_ratings, player_deviations, score_list)
 
 
-def normalize(score):
-    return score/200.0+0.5
+def normalize(player_score, max_score):
+    return player_score/2.0/max_score + 0.5
 
 
 def print_top_k_rating(k=0):
