@@ -6,11 +6,25 @@ all_players_income = dict()
 
 class Game:
     def __init__(self, player_scores):
+
+        money_won = 0.0
+        money_lost = 0.0
+
         for player_name in player_scores.keys():
             if player_name not in all_players:
                 all_players[player_name] = Player()
                 all_players_income[player_name] = 0
+                print "New player: " + player_name
+            if player_scores[player_name] > 0:
+                money_won += player_scores[player_name]
+            else:
+                money_lost -= player_scores[player_name]
             all_players_income[player_name] += player_scores[player_name]
+
+        print ""
+        print "Money won: %.2f" % money_won
+        print "Money lost: %.2f" % money_lost
+
         players = [all_players[player_name] for player_name in player_scores.keys()]
         player_ratings = [player.rating for player in players]
         player_deviations = [player.rd for player in players]
@@ -31,6 +45,7 @@ def normalize(player_score, max_score):
 
 
 def print_top_k_rating(k=0):
+    print ""
     sorted_players = sorted(all_players.items(), key=lambda p: p[1].rating, reverse=True)
     if k == 0:
         k = len(sorted_players)
