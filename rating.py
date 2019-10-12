@@ -2,6 +2,7 @@ from gilcko2 import Player
 
 all_players = dict()
 all_players_income = dict()
+player_absence = dict()
 
 
 class Game:
@@ -14,12 +15,19 @@ class Game:
             if player_name not in all_players:
                 all_players[player_name] = Player()
                 all_players_income[player_name] = 0
+                player_absence[player_name] = 0
                 print "New player: " + player_name
             if player_scores[player_name] > 0:
                 money_won += player_scores[player_name]
             else:
                 money_lost -= player_scores[player_name]
             all_players_income[player_name] += player_scores[player_name]
+
+        for name in player_absence.keys():
+            if name in player_scores.keys():
+                player_absence[name] = 0
+            else:
+                player_absence[name] += 1
 
         print ""
         print "Money won: %.2f" % money_won
@@ -50,7 +58,9 @@ def print_top_k_rating(k=0):
     if k == 0:
         k = len(sorted_players)
     for player in sorted_players[:k]:
-        print "%.2f\t%s" % (player[1].rating, player[0])
+        absence = player_absence[player[0]]
+        absence_note = " (absent: %d)" % absence if absence > 0 else ""
+        print "%.2f\t%s" % (player[1].rating, player[0]+absence_note)
 
 
 def print_top_k_income(k=0):
