@@ -1,71 +1,106 @@
-from gilcko2 import Player
+# from gilcko2 import Player
+import trueskill
 
-all_players = dict()
-all_players_income = dict()
-player_absence = dict()
+MU = 1500.0
+SIGMA = MU / 3
+BETA = SIGMA / 2
+TAU = SIGMA / 100
+
+trueskill_env = trueskill.TrueSkill(mu=MU,
+                                    sigma=SIGMA,
+                                    beta=BETA,
+                                    tau=TAU,
+                                    draw_probability=0)
+
+
+class Player:
+
+    all_players = dict()
+
+    def __init__(self, name):
+        self.name = name
+        self.absence = 0
+        self.income = 0
+        self.rating = trueskill_env.create_rating()
+        Player.all_players[name] = self
+        print "New player: %s" % name
+
+    def print_rating(self):
+        absence_note = " (absent: %d)" % self.absence if self.absence > 0 else ""
+        print "%.2f\t%.2f\t%s" % (self.rating.mu, self.rating.sigma, self.name+absence_note)
+
+    def update_income(self, income):
+        self.income += income
+
+    def update_absence(self, absent):
+        if absent:
+            self.absence += 1
+        else:
+            self.absence = 0
+
+    @staticmethod
+    def get(name):
+        if name in Player.all_players:
+            return Player.all_players[name]
+        else:
+            return Player(name)
 
 
 class Game:
-    def __init__(self, player_scores):
+    def __init__(self, player_scores, blind_size=40):
 
         money_won = 0.0
         money_lost = 0.0
 
         for player_name in player_scores.keys():
-            if player_name not in all_players:
-                all_players[player_name] = Player()
-                all_players_income[player_name] = 0
-                player_absence[player_name] = 0
-                print "New player: " + player_name
+            player = Player.get(player_name)
+
             if player_scores[player_name] > 0:
                 money_won += player_scores[player_name]
             else:
                 money_lost -= player_scores[player_name]
-            all_players_income[player_name] += player_scores[player_name]
 
-        for name in player_absence.keys():
-            if name in player_scores.keys():
-                player_absence[name] = 0
-            else:
-                player_absence[name] += 1
+            player.update_income(player_scores[player_name])
 
         print ""
         print "Money won: %.2f" % money_won
         print "Money lost: %.2f" % money_lost
 
-        players = [all_players[player_name] for player_name in player_scores.keys()]
-        player_ratings = [player.rating for player in players]
-        player_deviations = [player.rd for player in players]
+        for player in Player.all_players.values():
+            player.update_absence(player.name not in player_scores.keys())
 
-        max_score = max([score[1] for score in player_scores.items()])
-        min_score = min([score[1] for score in player_scores.items()])
-        max_score = max(max_score, -min_score)
+        players = [Player.get(name) for name in player_scores.keys()]
+        rating_groups = [(p.rating,) for p in players]
 
-        for player_name in player_scores.keys():
-            player = all_players[player_name]
-            score = normalize(player_scores[player_name], max_score)
-            score_list = [score] * len(players)
-            player.update_player(player_ratings, player_deviations, score_list)
+        # max_score = max(player_scores.values())
+        # min_score = max(player_scores.values())
+        # max_score = max(max_score, -min_score)
+        ranks = [-v for v in player_scores.values()]
+        # print zip(player_scores.keys(), ranks)
+
+        rated_rating_groups = trueskill_env.rate(rating_groups, ranks)
+        for i in range(len(players)):
+            players[i].rating = rated_rating_groups[i][0]
 
 
-def normalize(player_score, max_score):
-    return player_score/2.0/max_score + 0.5
+def normalize(player_score, blind_size):
+    return 1.0 - player_score/2.0/blind_size
 
 
 def print_top_k_rating(k=0):
-    print ""
-    sorted_players = sorted(all_players.items(), key=lambda p: p[1].rating, reverse=True)
+    print "\nRating\tSigma\tName"
+    sorted_players = sorted(Player.all_players.values(), key=lambda p: p.rating, reverse=True)
     if k == 0:
         k = len(sorted_players)
     for player in sorted_players[:k]:
-        absence = player_absence[player[0]]
-        absence_note = " (absent: %d)" % absence if absence > 0 else ""
-        print "%.2f\t%s" % (player[1].rating, player[0]+absence_note)
+        player.print_rating()
 
 
 def print_top_k_income(k=0):
-    sorted_players = sorted(all_players_income.items(), key=lambda p: p[1], reverse=True)
+    sorted_players = sorted(Player.all_players.values(), key=lambda p: p.income, reverse=True)
     if k == 0:
         k = len(sorted_players)
     for player in sorted_players[:k]:
-        print "%s\t%s" % (player[1], player[0])
+        player.print_income()
+
+
