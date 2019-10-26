@@ -20,7 +20,7 @@ class Player:
     def __init__(self, name):
         self.name = name
         self.absence = 0
-        self.income = 0
+        self.score = []
         self.rating = trueskill_env.create_rating()
         Player.all_players[name] = self
         print "New player: %s" % name
@@ -29,8 +29,11 @@ class Player:
         absence_note = " (absent: %d)" % self.absence if self.absence > 0 else ""
         print "%.2f\t%.2f\t%s" % (self.rating.mu, self.rating.sigma, self.name+absence_note)
 
-    def update_income(self, income):
-        self.income += income
+    def print_score(self):
+        print "%.2f\t%.2f\t%s" % (self.total_income, self.avg_income, self.name)
+
+    def update_score(self, score):
+        self.score.append(score)
 
     def update_absence(self, absent):
         if absent:
@@ -44,6 +47,14 @@ class Player:
             return Player.all_players[name]
         else:
             return Player(name)
+
+    @property
+    def total_income(self):
+        return sum(self.score)
+
+    @property
+    def avg_income(self):
+        return self.total_income/1.0/len(self.score)
 
 
 class Game:
@@ -60,7 +71,7 @@ class Game:
             else:
                 money_lost -= player_scores[player_name]
 
-            player.update_income(player_scores[player_name])
+            player.update_score(player_scores[player_name])
 
         print ""
         print "Money won: %.2f" % money_won
@@ -89,18 +100,19 @@ def normalize(player_score, blind_size):
 
 def print_top_k_rating(k=0):
     print "\nRating\tSigma\tName"
-    sorted_players = sorted(Player.all_players.values(), key=lambda p: p.rating, reverse=True)
+    active_players = filter(lambda p: p.absence <= 3, Player.all_players.values())
+    sorted_players = sorted(active_players, key=lambda p: p.rating, reverse=True)
     if k == 0:
         k = len(sorted_players)
     for player in sorted_players[:k]:
         player.print_rating()
 
 
-def print_top_k_income(k=0):
-    sorted_players = sorted(Player.all_players.values(), key=lambda p: p.income, reverse=True)
+def print_top_k_score(k=0):
+    print "\nGain\tAvg\tName"
+    active_players = filter(lambda p: p.absence <= 3, Player.all_players.values())
+    sorted_players = sorted(active_players, key=lambda p: p.total_income, reverse=True)
     if k == 0:
         k = len(sorted_players)
     for player in sorted_players[:k]:
-        player.print_income()
-
-
+        player.print_score()
